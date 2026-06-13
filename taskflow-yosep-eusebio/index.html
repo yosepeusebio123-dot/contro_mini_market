@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="FreshStock, inventario inteligente para minimarkets con productos perecibles.">
+    <title>FreshStock | Gestión de inventario</title>
+    <link rel="stylesheet" href="/vista/assets/styles.css">
+</head>
+<body>
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <main id="auth-view" class="auth-layout">
+        <section class="brand-panel">
+            <div class="brand-mark">FS</div>
+            <p class="eyebrow">Inventario para minimarkets</p>
+            <h1>Controla stock, vencimientos y movimientos desde un solo lugar.</h1>
+            <p>FreshStock ayuda a pequeños comercios a evitar quiebres de stock y pérdidas por productos vencidos.</p>
+            <ul>
+                <li>Alertas de stock mínimo</li>
+                <li>Seguimiento de fechas de vencimiento</li>
+                <li>Auditoría por usuario y movimiento</li>
+            </ul>
+        </section>
+
+        <section class="auth-card">
+            <div class="tabs" role="tablist">
+                <button class="tab active" data-auth-tab="login">Iniciar sesión</button>
+                <button class="tab" data-auth-tab="register">Crear cuenta</button>
+            </div>
+
+            <form id="login-form" class="form-stack">
+                <div>
+                    <label for="login-email">Correo</label>
+                    <input id="login-email" name="correo" type="email" value="admin@freshstock.local" required>
+                </div>
+                <div>
+                    <label for="login-password">Contraseña</label>
+                    <input id="login-password" name="contrasena" type="password" value="Admin123*" required>
+                </div>
+                <button class="button primary" type="submit">Ingresar</button>
+                <p class="helper">Cuenta demo: admin@freshstock.local / Admin123*</p>
+            </form>
+
+            <form id="register-form" class="form-stack hidden">
+                <div>
+                    <label for="register-name">Nombre completo</label>
+                    <input id="register-name" name="nombre" minlength="3" maxlength="100" required>
+                </div>
+                <div>
+                    <label for="register-email">Correo</label>
+                    <input id="register-email" name="correo" type="email" required>
+                </div>
+                <div>
+                    <label for="register-password">Contraseña</label>
+                    <input id="register-password" name="contrasena" type="password" minlength="8" required>
+                    <small>Usa mayúscula, minúscula y número.</small>
+                </div>
+                <button class="button primary" type="submit">Registrarme</button>
+            </form>
+        </section>
+    </main>
+
+    <div id="app-view" class="app-shell hidden">
+        <aside class="sidebar">
+            <div class="sidebar-brand"><span>FS</span><strong>FreshStock</strong></div>
+            <nav>
+                <button class="nav-link active" data-section="dashboard">Resumen</button>
+                <button class="nav-link" data-section="products">Productos</button>
+                <button class="nav-link" data-section="categories">Categorías</button>
+                <button class="nav-link" data-section="movements">Movimientos</button>
+                <button class="nav-link" data-section="alerts">Alertas</button>
+            </nav>
+            <a class="docs-link" href="/docs/" target="_blank" rel="noreferrer">Documentación API</a>
+        </aside>
+
+        <div class="content-area">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Panel de control</p>
+                    <h2 id="section-title">Resumen</h2>
+                </div>
+                <div class="user-box">
+                    <div><strong id="user-name"></strong><small id="user-role"></small></div>
+                    <button id="logout-button" class="button ghost">Salir</button>
+                </div>
+            </header>
+
+            <section id="section-dashboard" class="page-section">
+                <div id="summary-cards" class="card-grid"></div>
+                <div class="panel-grid">
+                    <article class="panel">
+                        <div class="panel-heading"><h3>Stock bajo</h3><button class="link-button" data-section-target="alerts">Ver alertas</button></div>
+                        <div id="dashboard-low-stock" class="list-placeholder">Cargando...</div>
+                    </article>
+                    <article class="panel">
+                        <div class="panel-heading"><h3>Próximos a vencer</h3><button class="link-button" data-section-target="alerts">Ver alertas</button></div>
+                        <div id="dashboard-expiring" class="list-placeholder">Cargando...</div>
+                    </article>
+                </div>
+            </section>
+
+            <section id="section-products" class="page-section hidden">
+                <div class="toolbar">
+                    <div class="search-group">
+                        <input id="product-filter" placeholder="Buscar por nombre o código">
+                        <select id="product-category-filter"><option value="">Todas las categorías</option></select>
+                        <button id="product-search-button" class="button secondary">Buscar</button>
+                    </div>
+                    <button id="new-product-button" class="button primary">Nuevo producto</button>
+                </div>
+
+                <form id="product-form" class="panel form-grid hidden">
+                    <input id="product-id" type="hidden">
+                    <div><label>Nombre</label><input id="product-name" required maxlength="150"></div>
+                    <div><label>Código de barras</label><input id="product-code" required maxlength="100"></div>
+                    <div><label>Categoría</label><select id="product-category" required></select></div>
+                    <div><label>Unidad de medida</label><input id="product-unit" value="unidad" required></div>
+                    <div><label>Precio</label><input id="product-price" type="number" min="0" step="0.01" value="0" required></div>
+                    <div><label>Stock actual</label><input id="product-stock" type="number" min="0" value="0" required></div>
+                    <div><label>Stock mínimo</label><input id="product-min-stock" type="number" min="0" value="0" required></div>
+                    <div><label>Fecha de vencimiento</label><input id="product-expiry" type="date"></div>
+                    <div class="full"><label>Descripción</label><textarea id="product-description" maxlength="500"></textarea></div>
+                    <div class="form-actions full">
+                        <button class="button primary" type="submit">Guardar producto</button>
+                        <button id="cancel-product-button" class="button ghost" type="button">Cancelar</button>
+                    </div>
+                </form>
+
+                <div class="panel table-wrap">
+                    <table>
+                        <thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Precio</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+                        <tbody id="products-table"></tbody>
+                    </table>
+                    <div class="pagination"><button id="products-prev" class="button ghost">Anterior</button><span id="products-page"></span><button id="products-next" class="button ghost">Siguiente</button></div>
+                </div>
+            </section>
+
+            <section id="section-categories" class="page-section hidden">
+                <div class="toolbar"><p>Organiza el catálogo por familias de productos.</p><button id="new-category-button" class="button primary">Nueva categoría</button></div>
+                <form id="category-form" class="panel form-grid hidden">
+                    <input id="category-id" type="hidden">
+                    <div><label>Nombre</label><input id="category-name" required maxlength="100"></div>
+                    <div><label>Descripción</label><input id="category-description" maxlength="255"></div>
+                    <div class="form-actions full"><button class="button primary" type="submit">Guardar categoría</button><button id="cancel-category-button" class="button ghost" type="button">Cancelar</button></div>
+                </form>
+                <div id="categories-list" class="category-grid"></div>
+            </section>
+
+            <section id="section-movements" class="page-section hidden">
+                <div class="panel-grid">
+                    <form id="movement-form" class="panel form-stack">
+                        <h3>Registrar movimiento</h3>
+                        <div><label>Producto</label><select id="movement-product" required></select></div>
+                        <div><label>Tipo</label><select id="movement-type"><option value="ENTRADA">Entrada</option><option value="SALIDA">Salida</option></select></div>
+                        <div><label>Cantidad</label><input id="movement-quantity" type="number" min="1" value="1" required></div>
+                        <div><label>Motivo</label><input id="movement-reason" maxlength="255" placeholder="Compra, venta, ajuste..."></div>
+                        <button class="button primary" type="submit">Registrar</button>
+                    </form>
+                    <article class="panel"><h3>Regla de negocio</h3><p>Las salidas nunca pueden dejar el stock en negativo. Cada movimiento guarda el stock anterior, el resultado, el usuario y la fecha.</p></article>
+                </div>
+                <div class="panel table-wrap">
+                    <table><thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Stock</th><th>Usuario</th><th>Motivo</th></tr></thead><tbody id="movements-table"></tbody></table>
+                </div>
+            </section>
+
+            <section id="section-alerts" class="page-section hidden">
+                <div class="panel-grid">
+                    <article class="panel"><div class="panel-heading"><h3>Stock mínimo</h3><span class="badge danger">Atención</span></div><div id="alerts-low-stock"></div></article>
+                    <article class="panel"><div class="panel-heading"><h3>Vencen en 30 días</h3><span class="badge warning">Prevención</span></div><div id="alerts-expiring"></div></article>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/vista/assets/app.js" defer></script>
+</body>
+</html>

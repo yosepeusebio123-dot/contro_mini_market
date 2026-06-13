@@ -1,0 +1,84 @@
+services:
+  secret_init:
+    image: alpine:3.20
+    container_name: freshstock_secret_init
+    command: >
+      sh -c "
+      test -s /run/secrets/db_password || (head -c 48 /dev/urandom | base64 > /run/secrets/db_password);
+      test -s /run/secrets/jwt_secret || (head -c 64 /dev/urandom | base64 > /run/secrets/jwt_secret);
+      chmod 0444 /run/secrets/db_password /run/secrets/jwt_secret
+      "
+    volumes:
+      - runtime_secrets:/run/secrets
+    network_mode: none
+    restart: "no"
+
+  base_datos:
+    image: postgres:15-alpine
+    container_name: app_freshstock_db
+    depends_on:
+      secret_init:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_DB: ${DB_NAME:-freshstock}
+      POSTGRES_USER: ${DB_USER:-freshstock_app}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+      - runtime_secrets:/run/secrets:ro
+      - ./migraciones.sql:/docker-entrypoint-initdb.d/01-migraciones.sql:ro
+      - ./seeds.sql:/docker-entrypoint-initdb.d/02-seeds.sql:ro
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-freshstock_app} -d ${DB_NAME:-freshstock}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    networks:
+      - freshstock_internal
+    restart: unless-stopped
+
+  servidor_web:
+    build:
+      context: .
+    container_name: app_freshstock_web
+    depends_on:
+      secret_init:
+        condition: service_completed_successfully
+      base_datos:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_NAME: ${APP_NAME:-FreshStock}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      DB_HOST: base_datos
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-freshstock}
+      DB_USER: ${DB_USER:-freshstock_app}
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_TTL: ${JWT_TTL:-14400}
+    ports:
+      - "8080:80"
+    volumes:
+      - runtime_secrets:/run/secrets:ro
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://localhost/health\") === false ? 1 : 0);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - freshstock_public
+      - freshstock_internal
+    restart: unless-stopped
+
+volumes:
+  datos_postgres:
+  runtime_secrets:
+
+networks:
+  freshstock_public:
+  freshstock_internal:
+    internal: true
